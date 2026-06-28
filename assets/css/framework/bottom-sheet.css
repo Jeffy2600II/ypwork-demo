@@ -1,0 +1,475 @@
+/* ═══════════════════════════════════════════════════════════════
+   YP WORK · FRAMEWORK/BOTTOM-SHEET (CSS)
+   assets/css/framework/bottom-sheet.css
+   ────────────────────────────────────────────────────────────────
+   Production-grade bottom sheet (iOS-native quality, v5)
+
+   KEY PERF TECHNIQUES (anti-stutter):
+   1. Sheet uses direct inline `transform: translate3d(0, Y, 0)` set by JS
+      — NOT CSS variable. CSS variables cascade to all descendants and
+      force style recalc on every child every frame → major stutter.
+   2. NO `transform: translateZ(0)` on `.sheet__body`. Previously this
+      created a GPU layer the size of the entire body content (could be
+      thousands of pixels tall). When sheet moved, GPU had to composite
+      that huge layer every frame → stutter. Now body content lives in
+      the sheet's own (small, viewport-sized) GPU layer.
+   3. `contain: layout style` on body (NO `paint`). `contain: paint` +
+      `overflow: auto` creates an oversized backing store. `layout style`
+      still isolates layout/style recalc but doesn't create a paint layer.
+   4. NO `-webkit-overflow-scrolling: touch` — deprecated since iOS 13,
+      creates oversized GPU layers and conflicts with modern overflow.
+   5. `will-change: transform` only during drag/animation (via .is-dragging
+      and .is-animating classes). Persistent will-change wastes GPU memory
+      and can actually hurt performance on low-end devices.
+   6. Sheet has `contain: layout style` (NO `paint`) — paint containment
+      on the sheet itself would also create a backing store as big as
+      the sheet content area.
+   7. Backdrop opacity driven by direct `style.opacity` (not CSS variable)
+      — same reason as sheet transform.
+   8. `backface-visibility: hidden` on sheet — extra GPU layer hint,
+      eliminates sub-pixel paint flicker during transform animation.
+   9. Spring keyframe for open animation — cubic-bezier overshoot gives
+      iOS-native bounce without JS animation library.
+  10. Conditional hover suppression during drag — `.is-dragging *` disables
+      hover transitions on children to avoid style recalc cascade.
+
+   ANIMATION STATES:
+   - default:        hidden, translated 100% down (off-screen)
+   - .is-open:       visible, translated 0 (rest position)
+   - .is-opening:    playing spring-bounce open animation
+   - .is-dragging:   transition:none, follows finger (inline transform)
+   - .is-animating:  spring transition active (snap-back or close)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Backdrop ──────────────────────────────────────────────────── */
+/* v5.3: เปลี่ยนเป็น overlay ธรรมดา (ไม่มี backdrop-filter: blur)
+ * เหตุผล: backdrop-filter กิน GPU/compositing resources มาก โดยเฉพาะ
+ * บนมือถือรุ่นเก่า/กลาง → กระตุกตอนเปิด/ปิด sheet
+ * ใช้ solid color ทึบขึ้นนิด (0.55) แทน blur ให้ contrast พอ */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--sheet-z, 1000);
+
+  /* สำคัญ: touch-action:none ปิด browser touch effect ทั้งหมด
+   * ป้องกัน scroll/zoom/double-tap-zoom บนพื้นที่ backdrop */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+
+  /* solid overlay ทึบ 0.55 — ดูเป็น dim layer แบบ modern minimal
+   * ไม่ต้อง blur เพราะฉากหลังไม่ได้โผล่มาดู แถมประหยัดทรัพยากร */
+  background: rgba(30, 27, 70, 0.55);
+
+  /* visibility + opacity transition (เร็วกว่า sheet slide) */
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 220ms;
+  /* NOTE: drag-to-dismiss ปรับ opacity ผ่าน `style.opacity` โดยตรง
+   * (ไม่ใช่ CSS variable) เพื่อกัน style recalc cascade ไปยัง sheet */
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  /* กัน scroll chain */
+  overscroll-behavior: contain;
+  /* isolate layer เพื่อให้ browser ไม่ต้อง mix กับหน้าหลัก */
+  contain: layout paint style;
+}
+
+.sheet-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── Sheet (ตัวการ์ดจริง ๆ) ───────────────────────────────────── */
+.sheet {
+  position: relative;
+  background: var(--yp-bg-card, #fff);
+  /* v6.1: มุมโค้ง lg (44px) — ไม่โค้งเกิน สมดุลกับ bottom nav */
+  border-radius: var(--yp-radius-lg, 44px) var(--yp-radius-lg, 44px) 0 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  max-height: 92dvh;
+
+  /* ── TRANSFORM ──
+   * Default: hidden อยู่ด้านล่าง (translateY 100%)
+   * .is-open: กลับสู่ตำแหน่งปกติ (translateY 0)
+   * .is-dragging: JS set inline transform ตรง ๆ (override CSS rule)
+   *
+   * NOTE: ไม่ใช้ CSS variable --sheet-drag-y แล้ว
+   * เพราะ variable ถูก inherited ไปยัง descendants ทั้งหมด
+   * → browser ต้อง style recalc ทุก element ใน sheet ทุก pointermove
+   * → กระตุกมากเมื่อ body มีเนื้อหาเยอะ ๆ
+   * Direct inline transform มีผลเฉพาะ sheet element เดียว */
+  transform: translate3d(0, 100%, 0);
+
+  /* spring-ish easing สำหรับ snap-back / close */
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* will-change ถูกควบคุมด้วย class — เปิดเฉพาะตอน drag/animation
+   * ถ้าเปิดค้างจะกิน GPU memory และทำให้ low-end devices ช้าลง */
+  /* will-change: transform; ← ไม่ใส่ที่นี่ ใส่ใน .is-dragging / .is-animating */
+
+  /* Force เป็น GPU layer แยก — ลด paint area + กัน sub-pixel flicker */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  /* Shadow แบบ fixed-size (ไม่ spread) เพื่อลด repaint cost */
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+
+  /* v5.3: padding เพิ่มขึ้น — breathing room
+   * v6.1: คืน padding ด้านข้างและล่าง — ไม่ต้องเพิ่มเกิน */
+  padding: 16px var(--yp-space-5, 20px)
+           calc(24px + var(--yp-safe-bottom, 0px));
+
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  /* contain เพื่อ isolate sheet จาก parent — browser ไม่ต้อง
+   * recalc parent layout เมื่อ children ใน sheet เปลี่ยน
+   *
+   * NOTE: ไม่ใช้ `paint` เพราะ paint containment บน sheet จะสร้าง
+   * backing store ขนาดเท่า content area (ใหญ่เกินไปเมื่อเนื้อหาเยอะ)
+   * layout + style เพียงพอที่จะ isolate layout/style recalc */
+  contain: layout style;
+
+  /* กัน scroll chain */
+  overscroll-behavior: contain;
+}
+
+.sheet.has-footer {
+  padding-bottom: 0;
+}
+
+/* ── OPEN STATE ──
+ * เปลี่ยน transform จาก 100% → 0
+ * transition จัดการ animation */
+.sheet.is-open {
+  transform: translate3d(0, 0, 0);
+}
+
+/* ── DRAG STATE ──
+ * ปิด transition ชั่วคราว → sheet ติดตามนิ้วแบบ 1:1 ไม่มี lag
+ * JS set inline `style.transform = translate3d(0, Ypx, 0)` โดยตรง
+ * (override CSS rule ข้างบน)
+ *
+ * เปิด will-change ตอนนี้เอง → browser promote sheet เป็น GPU layer
+ * ก่อน first transform (ลด stutter ที่เกิดจาก layer promotion ใน
+ * first frame ของ drag) */
+.sheet.is-dragging {
+  transition: none;
+  will-change: transform;
+}
+
+/* ── ANIMATING STATE ──
+ * ใช้สำหรับ snap-back (spring overshoot) และ close-from-drag
+ * เปิด will-change จนกว่า transition จะจบ */
+.sheet.is-animating {
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
+
+/* ── OPEN ANIMATION (premium spring bounce) ──
+ * Keyframe animation แทน transition สำหรับ open
+ * - 0%   : sheet อยู่ด้านล่าง (translateY 100%)
+ * - 55%  : overshoot เล็กน้อยเหนือตำแหน่งปลาย (translateY -12px)
+ * - 100% : กลับสู่ตำแหน่งปลาย (translateY 0)
+ *
+ * ไม่มี scaleY stretch — sheet แค่เด้งขึ้นนิดหน่อย (overshoot)
+ * ให้สัมผัสเหมือน iOS native sheet */
+@keyframes sheet-open-bounce {
+  0%   { transform: translate3d(0, 100%, 0); }
+  55%  { transform: translate3d(0, -12px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.sheet.is-opening {
+  animation: sheet-open-bounce 480ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  will-change: transform;
+}
+
+/* ── Hover suppression during drag ──
+ * ปิด hover transitions บน descendants ทั้งหมดตอน drag
+ * → กัน style recalc cascade จาก hover state changes */
+.sheet.is-dragging * {
+  pointer-events: none !important;
+}
+/* แต่ยังให้ sheet เอง + body รับ pointer events (เพื่อ pointermove/up) */
+.sheet.is-dragging,
+.sheet.is-dragging .sheet__body {
+  pointer-events: auto;
+}
+
+/* size variants */
+.sheet--tall { max-height: 88vh; max-height: 88dvh; }
+/* v6.1: มุมโค้ง lg ให้สม่ำเสมอกับ sheet หลัก */
+.sheet--full { max-height: 96vh; max-height: 96dvh; border-radius: var(--yp-radius-lg, 44px) var(--yp-radius-lg, 44px) 0 0; }
+
+/* ── Handle (เส้นด้านบน — capsule pill จริง ๆ) ──
+ *
+ * ออกแบบใหม่เป็น wrapper (hit area) + ::before (visible pill)
+ * - wrapper: padding 10px 0 6px, margin-top: -10px → ขยาย hit area
+ *   ให้ใหญ่กว่าตัว pill เพื่อตอบสนอง touch ที่ดีขึ้น
+ * - ::before: 38×6px pill จริง ๆ (border-radius: 9999px) กึ่งกลาง
+ * - opacity 0.32 (neutral) → ดู premium ไม่เด่นเกินไป
+ * - active state: scaleX 0.94 เล็กน้อย → feedback ตอนแตะ
+ */
+.sheet__handle {
+  /* wrapper: hit area + centering */
+  width: 100%;
+  padding: 10px 0 6px;
+  margin-top: -10px; /* ขยาย hit area ขึ้นไปด้านบน (เหลือ margin บนของ sheet) */
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+}
+.sheet__handle::before {
+  /* visible pill จริง */
+  content: '';
+  display: block;
+  width: 38px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--yp-border-strong, #cbd5e1);
+  opacity: 0.32;
+  transition: transform 180ms cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 180ms ease;
+  transform-origin: center;
+}
+.sheet__handle:active::before {
+  transform: scaleX(0.94);
+  opacity: 0.5;
+}
+
+/* ── Header ── */
+.sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yp-space-2, 8px);
+  /* v6.1: margin-bottom คืนเป็น space-4 */
+  margin-bottom: var(--yp-space-4, 16px);
+  flex-shrink: 0;
+}
+
+.sheet__title {
+  font-size: var(--yp-text-lg, 18px);
+  font-weight: var(--yp-fw-bold, 700);
+  color: var(--yp-text-strong, #1e1b3a);
+  letter-spacing: 0.01em;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet__close {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--yp-radius-sm, 8px);
+  display: grid;
+  place-items: center;
+  background: var(--yp-bg-card-soft, #f5f4fb);
+  border: 1px solid var(--yp-border-subtle, #ece9f5);
+  color: var(--yp-text-muted, #6b6685);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms, color 150ms, border-color 150ms;
+  padding: 0;
+}
+
+.sheet__close:hover {
+  background: var(--yp-bg-indigo-soft, #eef2ff);
+  color: var(--yp-indigo-600, #4f46e5);
+  border-color: var(--yp-border-indigo, #c7d2fe);
+}
+
+.sheet__close svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* ── Body ────────────────────────────────────────────────────────
+ *
+ * CRITICAL CHANGES (vs. old version):
+ * - ลบ `transform: translateZ(0)` ออก
+ *   เดิมสร้าง GPU layer ขนาดเท่าเนื้อหา body ทั้งหมด → composite
+ *   หนักมากเมื่อเนื้อหาเยอะ ตอนนี้ body content เป็นส่วนหนึ่งของ
+ *   sheet's GPU layer (เล็ก ขนาดเท่า visible area)
+ *
+ * - ลบ `-webkit-overflow-scrolling: touch` ออก
+ *   deprecated ใน iOS 13+ และสร้าง GPU layer ขนาดใหญ่เกินไป
+ *
+ * - เปลี่ยน `contain: layout paint style` → `contain: layout style`
+ *   paint containment + overflow:auto สร้าง backing store ขนาดใหญ่
+ *   layout + style เพียงพอที่จะ isolate layout/style recalc
+ *   โดยไม่ต้องสร้าง paint layer ขนาดใหญ่
+ */
+.sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* สำคัญ: อนุญาต touch ในนี้ เพราะ scroll-lock.js ใช้ data-scrollable */
+  touch-action: pan-y;
+  flex: 1;
+  min-height: 0;
+
+  /* contain เพื่อ isolate body จาก sheet — browser ไม่ต้อง
+   * recalc layout เมื่อ children เปลี่ยน
+   *
+   * NOTE: ไม่ใช้ `paint` เพราะ paint + overflow:auto สร้าง backing
+   * store ขนาดใหญ่ → composite หนักเวลา sheet move
+   * layout + style เพียงพอที่จะ isolate style/layout recalc */
+  contain: layout style;
+
+  /* NOTE: transform: translateZ(0) ถูกเอาออกจาก body
+   * ก่อนหน้านี้สร้าง GPU layer ขนาดเท่าเนื้อหา body ทั้งหมด
+   * ทำให้มือถือกระตุกมากเมื่อเนื้อหาเยอะ เพราะ GPU ต้อง composite
+   * layer ขนาดใหญ่ทุกเฟรม ตอนนี้ body ใช้ native scroll + paint
+   * เป็นส่วนหนึ่งของ sheet layer (เล็กกว่ามาก) */
+
+  /* NOTE: -webkit-overflow-scrolling: touch ถูกเอาออก
+   * (deprecated ใน modern iOS 13+ และสร้าง GPU layer ขนาดใหญ่เกินไป) */
+
+  /* ── HORIZONTAL WHITESPACE — ป้องกัน focus ring ถูกตัด ──
+   *
+   * ปัญหา: input/select/btn ที่ width:100% จะชนขอบ content box ของ body
+   * เมื่อ focus → box-shadow `0 0 0 3px ...` ขยายออกนอก element 3px
+   * แต่ body มี `overflow-y: auto` (clip ที่ padding box)
+   * → focus ring ที่ขยายออกนอก content box ถูก clip → "ถูกตัด"
+   *
+   * วิธีแก้: เพิ่ม padding ซ้าย-ขวา 4px → content box แคบลง 4px แต่
+   * focus ring (3px) ยังอยู่ใน padding box → แสดงได้เต็มไม่ถูกตัด
+   */
+  padding: 0 4px;
+
+  /* ── HIDE NATIVE SCROLLBAR — กัน layout shift ใน bottom sheet ── */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE10+ / legacy Edge */
+}
+
+/* Chrome / Safari / Edge (Blink + Webkit) */
+.sheet__body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* ── Scroll lock (ระหว่าง drag) ──
+ * เมื่อ sheet มี class .is-scroll-locked → body หยุด native scroll
+ * ชั่วคราว เพื่อให้ drag gesture ทำงานโดยไม่มี native scroll แทรก
+ *
+ * ใช้ overflow:hidden + touch-action:none เพื่อหยุด scroll ทันที
+ * (ไม่ใช่ pointer-events:none เพราะจะทำให้ drag ไม่ทำงาน)
+ */
+.sheet.is-scroll-locked .sheet__body {
+  overflow: hidden;
+  touch-action: none;
+}
+
+.sheet__message {
+  color: var(--yp-text-body, #4a4663);
+  margin: 0 0 var(--yp-space-5, 20px);
+  line-height: 1.55;
+}
+
+/* ── Footer ──
+ * Container สำหรับ action buttons ที่ล็อคอยู่ด้านล่าง sheet
+ * - flex item ล่างสุด (flex-shrink: 0) — ไม่ scroll ไปกับ body
+ * - พื้นหลังเต็มความกว้างของ sheet (ขยายผ่าน negative margin)
+ * - ปุ่มอยู่ที่ศูนย์จริง ๆ จากด้านล่างของ sheet/จอ (รวม safe-area)
+ * - มี border-top บาง ๆ เพื่อแยกจาก body content
+ */
+.sheet__footer {
+  flex-shrink: 0;
+  /* ขยายพื้นหลังให้เต็มความกว้างของ sheet (cancel sheet's horizontal padding) */
+  margin-left: calc(-1 * var(--yp-space-5, 20px));
+  margin-right: calc(-1 * var(--yp-space-5, 20px));
+  /* Padding: top (separator breathing), sides (กลับสู่ content area),
+   *          bottom (safe-area + ปุ่มอยู่ที่ศูนย์จากด้านล่างจริง ๆ) */
+  padding: var(--yp-space-4, 16px) var(--yp-space-5, 20px)
+           calc(var(--yp-space-4, 16px) + var(--yp-safe-bottom, 0px));
+  /* Separator บาง ๆ ด้านบน */
+  border-top: 1px solid var(--yp-border-subtle, #ece9f5);
+  /* พื้นหลังทึบ (ไม่ใช้ gradient เพราะมี border-top แยกให้แล้ว) */
+  background: var(--yp-bg-card, #fff);
+  position: relative;
+  z-index: 1;
+}
+
+.sheet__actions {
+  display: flex;
+  gap: var(--yp-space-2, 8px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP: เปลี่ยนเป็น centered modal (popup mode, ≥768px)
+   ═══════════════════════════════════════════════════════════════
+   *
+   * เมื่อ sheet เปิดใน popup mode:
+   * - body ได้รับ class "yp-sheet-popup" (set โดย JS)
+   * - ปิด drag-to-dismiss (set โดย JS)
+   * - sheet-backdrop z-index = 18000+ > nav z-index = 16000
+   * - sheet__handle ถูกซ่อน (display: none) เพราะไม่ใช่ bottom sheet
+   */
+@media (min-width: 768px) {
+  .sheet-backdrop {
+    align-items: center;
+    padding: var(--yp-space-6, 24px);
+  }
+
+  /* v6.1: มุมโค้ง lg บน desktop */
+  .sheet {
+    border-radius: var(--yp-radius-lg, 44px);
+    transform: translate3d(0, 20px, 0) scale(0.98);
+    max-width: 520px;
+  }
+
+  .sheet.is-open {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  .sheet__handle {
+    display: none;
+  }
+
+  /* Footer: มนมุมล่างให้ตรงกับ sheet บน desktop — v6.1: lg */
+  .sheet__footer {
+    border-bottom-left-radius: var(--yp-radius-lg, 44px);
+    border-bottom-right-radius: var(--yp-radius-lg, 44px);
+    /* บน desktop ไม่ต้องเผื่อ safe-area-inset */
+    padding-bottom: var(--yp-space-4, 16px);
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop {
+    transition: opacity 100ms, visibility 100ms;
+  }
+  .sheet {
+    transition: transform 100ms;
+  }
+  .sheet.is-animating {
+    transition: transform 100ms;
+  }
+  .sheet.is-opening {
+    animation: none;
+  }
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#4F46E5" />
+  <meta name="description" content="YP Work — สมองของสภานักเรียน จัดตารางงาน กลุ่มงาน ฝ่ายงาน และ task ย่อยในที่เดียว" />
+  <title>YP Work · เข้าสู่ระบบ</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="YP Work" />
+
+  <link rel="stylesheet" href="assets/css/tokens.css" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/layout.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/pages.css" />
+  <link rel="stylesheet" href="assets/css/framework/bottom-sheet.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="login">
+    <div class="login__inner">
+      <div class="login__brand">
+        <div class="login__logo">YP</div>
+        <div class="login__brand-text">
+          <div class="login__brand-name">YP Work</div>
+          <div class="login__brand-tag">Student Council Hub</div>
+        </div>
+      </div>
+
+      <div class="login__hero">
+        <span class="login__demo-badge">DEMO · Static</span>
+        <h1>สมองของ<br />สภานักเรียน</h1>
+        <p>จัดตารางงาน กลุ่มงาน ฝ่ายงาน และ task ย่อย ในที่เดียว — ไม่ลืมอีกต่อไป</p>
+      </div>
+
+      <div class="login__card">
+        <h2 class="login__card-title">เข้าสู่ระบบ</h2>
+        <p class="login__card-sub">กรอกเลขบัตรประชาชน 13 หลัก และรหัสนักเรียน 5 หลัก</p>
+
+        <form id="login-form" novalidate>
+          <div class="field" id="field-nid">
+            <label class="field__label" for="national-id">เลขบัตรประจำตัวประชาชน</label>
+            <div class="input-group">
+              <span class="input-group__addon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c.5-1.5 2-2 3-2s2.5.5 3 2M14 9h5M14 13h5M14 16h3"/></svg>
+              </span>
+              <input class="input" id="national-id" type="tel" inputmode="numeric" maxlength="13" placeholder="1 1 0 0 5 0 1 2 4 5 6 2 1" autocomplete="off" />
+            </div>
+            <div class="field__error">เลขบัตรประชาชนต้องมี 13 หลัก</div>
+          </div>
+
+          <div class="field" id="field-sc">
+            <label class="field__label" for="student-code">รหัสนักเรียน</label>
+            <div class="input-group">
+              <span class="input-group__addon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              </span>
+              <input class="input" id="student-code" type="tel" inputmode="numeric" maxlength="5" placeholder="3 8 0 0 1" autocomplete="off" />
+            </div>
+            <div class="field__error">รหัสนักเรียนต้องมี 5 หลัก</div>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block btn--lg" style="margin-top:8px;">เข้าสู่ระบบ</button>
+        </form>
+
+        <div class="login__divider">หรือทดลองเข้าใช้ทันที</div>
+
+        <div class="login__hint-title">บัญชีสาธิต (คลิกเพื่อเข้า)</div>
+        <div class="login__hint-list" id="hint-list"></div>
+      </div>
+
+      <div class="login__footer">
+        © 2026 YP Work · Demo สำหรับทดสอบแนวคิด · ข้อมูลเก็บใน browser
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { store } from './assets/js/core/store.js';
+    import { auth } from './assets/js/core/auth.js';
+    import { ICON, escapeHtml, initials, toast } from './assets/js/core/ui.js';
+    import { renderAvatar } from './assets/js/framework/avatar.js';
+
+    // If already logged in, redirect (with loop guard)
+    if (auth.current()) {
+      const now = Date.now();
+      const lastRedirect = parseInt(localStorage.getItem('yp-work:last-login-redirect') || '0', 10);
+      if (now - lastRedirect < 2000) {
+        console.warn('[login] redirect loop detected — clearing session and stopping');
+        localStorage.removeItem('yp-work:last-login-redirect');
+        auth.logout();
+      } else {
+        localStorage.setItem('yp-work:last-login-redirect', String(now));
+        window.location.replace('app.html');
+      }
+    }
+
+    // Build hint list — ใช้ SVG avatar เพื่อกัน copy ตัวอักษร
+    const hintList = document.getElementById('hint-list');
+    const users = store.getUsers();
+    hintList.innerHTML = users.map(u => `
+      <button class="login__hint" data-user-id="${u.id}">
+        <div class="login__hint-avatar">${renderAvatar({ name: u.name, color: u.color, size: 40, className: 'login__hint-avatar-img' })}</div>
+        <div class="login__hint-body">
+          <div class="login__hint-name">${escapeHtml(u.name)}</div>
+          <div class="login__hint-role">${escapeHtml(u.roleLabel)}</div>
+        </div>
+        <div class="login__hint-action">เข้า →</div>
+      </button>
+    `).join('');
+
+    // Auto-fill on hint click
+    hintList.querySelectorAll('[data-user-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.userId;
+        const result = auth.loginAs(id);
+        if (result.success) {
+          localStorage.removeItem('yp-work:last-login-redirect');
+          localStorage.removeItem('yp-work:last-auth-redirect');
+          toast(`สวัสดี ${result.user.name}`, 'success');
+          setTimeout(() => window.location.replace('app.html'), 400);
+        }
+      });
+    });
+
+    // Input formatting: digits only
+    const nidInput = document.getElementById('national-id');
+    const scInput = document.getElementById('student-code');
+
+    nidInput.addEventListener('input', () => {
+      nidInput.value = nidInput.value.replace(/\D/g, '').slice(0, 13);
+      document.getElementById('field-nid').classList.remove('has-error');
+    });
+    scInput.addEventListener('input', () => {
+      scInput.value = scInput.value.replace(/\D/g, '').slice(0, 5);
+      document.getElementById('field-sc').classList.remove('has-error');
+    });
+
+    // Form submit
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nid = nidInput.value;
+      const sc = scInput.value;
+      const result = auth.login(nid, sc);
+
+      if (!result.success) {
+        if (result.errors?.nationalId) document.getElementById('field-nid').classList.add('has-error');
+        if (result.errors?.studentCode) document.getElementById('field-sc').classList.add('has-error');
+        if (result.error && !result.errors?.nationalId && !result.errors?.studentCode) {
+          toast(result.error, 'error');
+        } else if (Object.keys(result.errors || {}).length > 0) {
+          toast('กรุณาตรวจสอบข้อมูลที่กรอก', 'error');
+        }
+        return;
+      }
+
+      localStorage.removeItem('yp-work:last-login-redirect');
+      localStorage.removeItem('yp-work:last-auth-redirect');
+      toast(`สวัสดี ${result.user.name}`, 'success');
+      setTimeout(() => window.location.replace('app.html'), 400);
+    });
+
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(err => {
+        console.warn('[SW] registration failed', err);
+      });
+    }
+  </script>
+</body>
+</html>

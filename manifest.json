@@ -1,0 +1,37 @@
+{
+  "name": "YP Work — สมองของสภานักเรียน",
+  "short_name": "YP Work",
+  "description": "แพลตฟอร์มภายในสำหรับจัดตารางงาน กลุ่มงาน ฝ่ายงาน และ task ย่อยของสภานักเรียน",
+  "lang": "th",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "browser"],
+  "orientation": "portrait-primary",
+  "background_color": "#4F46E5",
+  "theme_color": "#4F46E5",
+  "categories": ["productivity", "education"],
+  "icons": [
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "วันนี้",
+      "short_name": "วันนี้",
+      "url": "./app.html#/today"
+    },
+    {
+      "name": "ปฏิทิน",
+      "short_name": "ปฏิทิน",
+      "url": "./app.html#/calendar"
+    },
+    {
+      "name": "งานทั้งหมด",
+      "short_name": "งาน",
+      "url": "./app.html#/events"
+    }
+  ]
+}

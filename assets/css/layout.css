@@ -1,0 +1,428 @@
+/* ═══════════════════════════════════════════════════════════════
+   YP WORK · LAYOUT
+   assets/css/layout.css
+   Page shell + top-bar + bottom-nav + left-rail + page-header
+
+   หลักการ:
+   - ทุกอย่างใช้ radius token
+   - เปิด padding ให้หายใจมากขึ้น
+   - bottom-nav มีการ lift ขึ้นจากขอบจอ + มี padding ด้านใน
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ────────────────────────────────────────────────────────────
+   PAGE SHELL
+   ──────────────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: var(--yp-page-bottom-pad);
+}
+
+/* เมื่อ bottom nav ซ่อน — เอา padding ล่างออก */
+.app-main:has(~ .bottom-nav.is-hidden) {
+  padding-bottom: var(--yp-space-6);
+}
+
+.page {
+  padding-top: calc(var(--yp-nav-top-h) + var(--yp-safe-top) + var(--yp-space-4));  /* v6.1: คืนจาก space-5 */
+  animation: yp-page-in 320ms var(--yp-ease-decel, cubic-bezier(0, 0, 0.2, 1)) both;
+}
+
+/* กันชนด้านล่างของ .page container — เวลาเลื่อนไปสุดจะไม่ติด bottom nav */
+.page.container {
+  padding-bottom: var(--yp-space-6);  /* v6.1: คืนจาก space-8 */
+}
+
+@keyframes yp-page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Utility: is-hidden ── */
+.is-hidden {
+  display: none !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   TOP BAR (mobile)
+   ──────────────────────────────────────────────────────────── */
+.top-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: calc(var(--yp-nav-top-h) + var(--yp-safe-top));
+  padding: var(--yp-safe-top) var(--yp-page-pad-x) 0;
+  background: rgba(245, 244, 251, 0.88);
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  box-shadow: 0 1px 0 var(--yp-border-subtle);
+  z-index: var(--yp-z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yp-space-3);
+  transform: translateZ(0);
+  contain: layout style;
+}
+
+.top-bar__title {
+  font-size: var(--yp-text-base);
+  font-weight: var(--yp-fw-bold);
+  color: var(--yp-indigo-600);
+  letter-spacing: 0.01em;
+  background: var(--yp-gradient-brand-flat);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  flex: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--yp-space-2);
+  min-width: 40px;
+}
+
+.top-bar__back {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--yp-text-body);
+  border-radius: var(--yp-radius-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--yp-t-fast), color var(--yp-t-fast);
+}
+
+.top-bar__back:hover {
+  background: var(--yp-bg-indigo-soft);
+  color: var(--yp-indigo-600);
+}
+
+.top-bar__back svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.top-bar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--yp-space-2);
+}
+
+.top-bar__avatar {
+  width: 32px; height: 32px;
+  border-radius: var(--yp-radius-pill);
+  display: block;
+  flex-shrink: 0;
+  border: 1.5px solid white;
+  box-shadow: var(--yp-shadow-sm);
+  overflow: hidden;
+  background: var(--yp-bg-card-soft);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.top-bar__avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ────────────────────────────────────────────────────────────
+   BOTTOM NAVIGATION — มีการ lift ขึ้นจากขอบ + padding ใน
+   ──────────────────────────────────────────────────────────── */
+.bottom-nav,
+.bottom-nav * { box-sizing: border-box; }
+
+.bottom-nav {
+  position: fixed;
+  inset: auto var(--yp-space-3) calc(var(--yp-safe-bottom) + var(--yp-space-3)) var(--yp-space-3);
+  z-index: var(--yp-z-nav);
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  padding: 10px 8px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  background: var(--yp-bg-card);
+  box-shadow: 0 -2px 16px rgba(30, 27, 70, 0.08);  /* v6.0: shadow นุ่มขึ้น */
+  /* v6.1: มุมโค้ง lg (44px) ให้สมดุล — ไม่โค้งเกิน */
+  border-radius: var(--yp-radius-lg);
+  border: 1px solid var(--yp-border-subtle);  /* v6.0: border บางลง */
+  contain: layout paint style;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* Smooth slide-down when sheet opens */
+  transition:
+    transform 260ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* When any bottom sheet is open → slide nav + FAB off-screen so sheet never gets covered */
+body.yp-sheet-open .bottom-nav,
+body.yp-sheet-open .fab {
+  transform: translateY(150%);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.bottom-nav__item {
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-radius: var(--yp-radius-md);
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  transition: color var(--yp-t-fast), background var(--yp-t-fast);
+  min-width: 56px;
+  color: var(--yp-text-secondary);
+}
+
+.bottom-nav__icon {
+  position: relative;
+  width: 56px;
+  height: 42px;
+  border-radius: var(--yp-radius-pill);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  transition: transform var(--yp-t-fast);
+}
+
+.bottom-nav__icon svg {
+  width: 22px; height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  transition: stroke var(--yp-t-fast);
+}
+
+/* Pulse background on active — Fantrove pattern */
+.bottom-nav__icon::before {
+  content: '';
+  position: absolute;
+  inset: 4px 8px;
+  background: rgba(99, 102, 241, 0.10);
+  border: 1px solid rgba(99, 102, 241, 0.30);
+  box-shadow: inset 0 0 6px 0 rgba(99, 102, 241, 0.20);
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+  transition: opacity var(--yp-t-fast);
+}
+
+.bottom-nav__label {
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--yp-text-secondary);
+  transition: color var(--yp-t-fast);
+}
+
+.bottom-nav__item:hover { color: var(--yp-indigo-500); }
+
+.bottom-nav__item.is-active {
+  color: var(--yp-indigo-600);
+}
+.bottom-nav__item.is-active .bottom-nav__icon svg {
+  stroke: var(--yp-indigo-500);
+}
+.bottom-nav__item.is-active .bottom-nav__icon::before {
+  opacity: 1;
+}
+.bottom-nav__item.is-active .bottom-nav__label {
+  color: var(--yp-indigo-500);
+  letter-spacing: 0.02em;
+  font-weight: var(--yp-fw-semibold);
+}
+
+/* ────────────────────────────────────────────────────────────
+   FLOATING ACTION BUTTON
+   ──────────────────────────────────────────────────────────── */
+.fab {
+  position: fixed;
+  right: calc(var(--yp-page-pad-x) + var(--yp-safe-right));
+  bottom: var(--yp-fab-bottom);
+  width: var(--yp-fab-size);
+  height: var(--yp-fab-size);
+  border-radius: var(--yp-radius-md);
+  background: var(--yp-gradient-brand-flat);
+  color: white;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--yp-shadow-indigo);
+  z-index: var(--yp-z-fab);
+  transition: transform var(--yp-t-fast), box-shadow var(--yp-t-fast);
+  border: 1.5px solid var(--yp-indigo-600);
+}
+
+/* v5.8: เพิ่ม subtle transition ให้ FAB hover smooth ขึ้น */
+.fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.22);
+}
+.fab:active { transform: translateY(0) scale(0.96); box-shadow: var(--yp-shadow-xs); }
+
+.fab svg {
+  width: 22px; height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ────────────────────────────────────────────────────────────
+   DESKTOP: bottom-nav → left-rail (≥900px)
+   ──────────────────────────────────────────────────────────── */
+@media (min-width: 900px) {
+  :root {
+    --yp-nav-top-h: 56px;
+  }
+
+  .app-shell {
+    flex-direction: row;
+  }
+
+  .app-main {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: var(--yp-space-8);
+  }
+  .bottom-nav {
+    inset: 0 auto 0 0;
+    width: 92px;
+    height: 100vh;
+    height: 100dvh;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding: calc(var(--yp-safe-top) + var(--yp-space-4)) var(--yp-space-2) var(--yp-space-4);
+    /* v6.1: มุมโค้ง lg ทางขวา */
+    border-radius: 0 var(--yp-radius-lg) var(--yp-radius-lg) 0;
+    border-top: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-right: 1px solid var(--yp-border-subtle);
+    box-shadow: 2px 0 16px rgba(30, 27, 70, 0.06);  /* v6.0: shadow นุ่มขึ้น */
+  }
+
+  .bottom-nav__item {
+    width: 100%;
+    padding: 10px 0;
+    min-width: 0;
+  }
+
+  .bottom-nav__icon {
+    width: 100%;
+    height: 44px;
+  }
+  .bottom-nav__icon svg { height: 20px; }
+
+  .bottom-nav__label {
+    font-size: 11.5px;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .fab {
+    bottom: calc(var(--yp-space-5) + var(--yp-safe-bottom));
+    right: calc(var(--yp-space-5) + var(--yp-safe-right));
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --yp-page-pad-x: 2rem;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────
+   PAGE HEADER (inside page)
+ * v5.3: เพิ่ม padding-bottom (3→4) ให้ header ห่างจาก content มากขึ้น
+   ──────────────────────────────────────────────────────────── */
+.page-header {
+  padding: 0 0 var(--yp-space-4);  /* v6.1: คืนจาก space-5 */
+}
+
+.page-header__eyebrow {
+  font-size: var(--yp-text-xs);
+  font-weight: var(--yp-fw-extrabold);
+  text-transform: uppercase;
+  /* v5.3: letter-spacing 0.1→0.12 ให้ดูเป็น minimal eyebrow */
+  letter-spacing: 0.12em;
+  color: var(--yp-indigo-600);
+  /* v5.3: margin-bottom 4→6 */
+  margin-bottom: 6px;
+}
+
+.page-header__title {
+  font-size: var(--yp-h1-size);
+  font-weight: var(--yp-fw-extrabold);
+  color: var(--yp-text-strong);
+  letter-spacing: 0.005em;
+  line-height: var(--yp-leading-tight);
+}
+
+.page-header__subtitle {
+  /* v6.1: margin-top คืนเป็น 6px */
+  margin-top: 6px;
+  color: var(--yp-text-muted);
+  font-size: var(--yp-text-sm);
+  line-height: 1.5;
+}
+
+/* ────────────────────────────────────────────────────────────
+   SECTION SPACING (inside page)
+   ──────────────────────────────────────────────────────────── */
+.section__title {
+  font-size: var(--yp-h3-size);
+  font-weight: var(--yp-fw-bold);
+  color: var(--yp-text-heading);
+  margin-bottom: var(--yp-space-4);  /* v6.1: คืนจาก space-5 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yp-space-2);
+  letter-spacing: 0.005em;
+}
+
+.section__title-link {
+  font-size: var(--yp-text-sm);
+  color: var(--yp-indigo-600);
+  font-weight: var(--yp-fw-semibold);
+}

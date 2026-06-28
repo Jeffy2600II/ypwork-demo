@@ -1,0 +1,292 @@
+/* ═══════════════════════════════════════════════════════════════
+   YP WORK · DESIGN TOKENS v7.3 (Fantrove-aligned, Indigo Trust)
+   assets/css/tokens.css
+   โหลดเป็น CSS แรกสุดในทุก HTML page
+
+   หลักการ:
+   - ทุกมิติ (radius, spacing, typography, shadow, transition) ใช้ระบบ token
+   - ปรับ radius scale ให้มน premium (signature look)
+   - v7.3: เปลี่ยนจุดเรียบจาก grid → อนุภาคฝุ่น scattered
+           ขนาดต่างกัน + ขยับนิดหน่อยเหมือนฝุ่นลอย + จางสลับเปลี่ยนขนาดด้วย
+   - v7.2: ลบ shimmer/light-wave/glow-drift → เปลี่ยนเป็น dot-breathe
+           จุดอยู่กับที่ + ค่อยๆ จางสลับหลายจุด + พื้นหลังไหล + ลบเงาวิ่ง
+   - v7.1: เพิ่ม hero drift/bg-flow animation tokens — จุดวิ่งช้าๆ + พื้นหลังไหล
+   - v7.0: เพิ่ม hero animation tokens, accent-color system,
+           card hover/active per-color, entrance animations
+   - คง Indigo Trust colors ไว้ทั้งหมด
+   - v6.1: ย้อน spacing กลับเป็นค่ามาตรฐาน 4px grid
+   - v6.0: Hero radius กลับไป xl (56px)
+   - v6.1: Bottom sheet radius ลดจาก xl→lg (56→44px)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ────────────────────────────────────────────────────────────
+     BRAND COLORS — Indigo Trust (คงเดิม ไม่เปลี่ยน)
+     ──────────────────────────────────────────────────────────── */
+  --yp-indigo-50:  #EEF2FF;
+  --yp-indigo-100: #E0E7FF;
+  --yp-indigo-200: #C7D2FE;
+  --yp-indigo-300: #A5B4FC;
+  --yp-indigo-400: #818CF8;
+  --yp-indigo-500: #6366F1;
+  --yp-indigo-600: #4F46E5;   /* Primary */
+  --yp-indigo-700: #4338CA;
+  --yp-indigo-800: #3730A3;
+  --yp-indigo-900: #312E81;
+  --yp-indigo-950: #1E1B4B;
+
+  --yp-violet-400: #A78BFA;
+  --yp-violet-500: #8B5CF6;
+  --yp-violet-600: #7C3AED;
+  --yp-violet-700: #6D28D9;
+
+  --yp-amber-400: #FBBF24;
+  --yp-amber-500: #F59E0B;
+  --yp-emerald-400: #34D399;
+  --yp-emerald-500: #10B981;
+  --yp-rose-400: #FB7185;
+  --yp-rose-500: #F43F5E;
+
+  /* Status colors */
+  --yp-todo:        var(--yp-amber-500);
+  --yp-ongoing:     var(--yp-indigo-500);
+  --yp-done:        var(--yp-emerald-500);
+  --yp-overdue:     var(--yp-rose-500);
+
+  /* ────────────────────────────────────────────────────────────
+     TEXT — blue-tinted neutrals
+     ──────────────────────────────────────────────────────────── */
+  --yp-text-strong:    #1A1740;
+  --yp-text-heading:   #23204A;
+  --yp-text-body:      #3F3C5E;
+  --yp-text-secondary: #57546F;
+  --yp-text-muted:     #6E6B8C;
+  --yp-text-faint:     #9794B0;
+  --yp-text-inverse:   #FFFFFF;
+
+  /* ────────────────────────────────────────────────────────────
+     SURFACE / BACKGROUND
+     ──────────────────────────────────────────────────────────── */
+  --yp-bg-page:        #F5F4FB;
+  --yp-bg-card:        #FFFFFF;
+  --yp-bg-card-soft:   #FAF9FE;
+  --yp-bg-elevated:    #FFFFFF;
+  --yp-bg-indigo-soft: #EEF2FF;
+  --yp-bg-overlay:     rgba(30, 27, 70, 0.55);
+  --yp-bg-cream:       #FAF9F6;
+
+  /* ────────────────────────────────────────────────────────────
+     BORDER — blue/indigo-tinted
+     ──────────────────────────────────────────────────────────── */
+  --yp-border-subtle:   rgba(79, 70, 229, 0.06);
+  --yp-border-default:  rgba(79, 70, 229, 0.10);
+  --yp-border-strong:   rgba(30, 27, 70, 0.16);
+  --yp-border-indigo:   rgba(79, 70, 229, 0.22);
+  --yp-border-indigo-strong: rgba(99, 102, 241, 0.45);
+  --yp-focus-ring:      rgba(79, 70, 229, 0.16);
+
+  /* ────────────────────────────────────────────────────────────
+     GRADIENTS
+     ──────────────────────────────────────────────────────────── */
+  --yp-gradient-brand:
+    radial-gradient(circle at 30% 30%, rgba(124, 58, 237, 0.55) 0%, transparent 60%),
+    radial-gradient(circle at 70% 70%, rgba(79, 70, 229, 0.65) 0%, transparent 60%),
+    linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  --yp-gradient-brand-flat: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  --yp-gradient-brand-soft: linear-gradient(135deg, rgba(79,70,229,0.10) 0%, rgba(124,58,237,0.08) 100%);
+  --yp-gradient-card: linear-gradient(180deg, #FFFFFF 0%, #FBFAFE 100%);
+  --yp-gradient-hero:
+    radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.18) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.20) 0%, transparent 55%),
+    linear-gradient(135deg, #312E81 0%, #4F46E5 50%, #7C3AED 100%);
+  --yp-gradient-btn: linear-gradient(to right, #6366F1 0%, #7C3AED 100%);
+
+  /* ────────────────────────────────────────────────────────────
+     SPACING — 4px grid, ยืมจาก Fantrove
+     v6.1: ย้อนกลับเป็นค่ามาตรฐาน 4px grid เหมือน v5.6-5.7
+           ไม่เพิ่มทุกที่ — จุดไหนควรปรับปรับเป็นรายจุดแทน
+     ──────────────────────────────────────────────────────────── */
+  --yp-space-1:  0.25rem;   /*  4px */
+  --yp-space-2:  0.5rem;    /*  8px */
+  --yp-space-3:  0.75rem;   /* 12px */
+  --yp-space-4:  1rem;      /* 16px */
+  --yp-space-5:  1.25rem;   /* 20px — v6.1: คืนจาก 22px */
+  --yp-space-6:  1.5rem;    /* 24px — v6.1: คืนจาก 26px */
+  --yp-space-7:  1.75rem;   /* 28px — v6.1: คืนจาก 30px */
+  --yp-space-8:  2rem;      /* 32px — v6.1: คืนจาก 34px */
+  --yp-space-10: 2.5rem;    /* 40px — v6.1: คืนจาก 44px */
+  --yp-space-12: 3rem;      /* 48px — v6.1: คืนจาก 52px */
+  --yp-space-16: 4rem;      /* 64px — v6.1: คืนจาก 68px */
+  --yp-space-20: 5rem;      /* 80px — v6.1: คืนจาก 84px */
+
+  /* ────────────────────────────────────────────────────────────
+     BORDER RADIUS — TOKEN SYSTEM (จุดศูนย์กลางของการออกแบบ)
+     v5.9: ขับเคลื่อนด้วย token เพียว ๆ — มน premium แต่พอดี
+     ทุก component ที่อ้างอิง token จะถูกปรับพร้อมกันทันที
+     ห้าม "เติม" radius เองในแต่ละหน้า — ให้เปลี่ยน token ตรงนี้เท่านั้น
+     ──────────────────────────────────────────────────────────── */
+  --yp-radius-xs:   20px;    /*  small chips, dots, toggle */
+  --yp-radius-sm:   28px;    /*  small cards, list-items, inputs */
+  --yp-radius-md:   36px;    /*  medium cards, buttons, dropdowns */
+  --yp-radius-lg:   44px;    /*  main cards, sections, hero blocks */
+  --yp-radius-xl:   56px;    /*  large cards, modals, FAB */
+  --yp-radius-2xl:  68px;    /*  hero panels, big surfaces */
+  --yp-radius-pill: 999px;   /*  pills, avatars, status chips */
+
+  /* Semantic radius aliases — ใช้ตามบริบท
+   * v6.0: Hero radius กลับไป xl (56px) เหมือนเวอร์ชั่นเดิมที่สวยกว่า
+   * v6.1: Panel/sheet radius ลดจาก lg→md (44→36px) ให้ไม่โค้งเกิน
+   *        มุมโค้งมน premium ดูมีเอกลักษณ์ */
+  --yp-radius-control:   var(--yp-radius-md);   /*  ปุ่ม, input, segmented */
+  --yp-radius-card:      var(--yp-radius-lg);   /*  card ทั่วไป */
+  --yp-radius-panel:     var(--yp-radius-md);   /*  panel, modal, sheet — v6.1: lg→md ลดมุมโค้ง */
+  --yp-radius-hero:      var(--yp-radius-xl);   /*  hero gradient block — คง xl เหมือนเดิม */
+
+  /* ────────────────────────────────────────────────────────────
+     TYPOGRAPHY
+     ──────────────────────────────────────────────────────────── */
+  --yp-font-stack: 'Noto Sans Thai', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --yp-font-mono:  'JetBrains Mono', 'Sarasa Mono SC', ui-monospace, monospace;
+
+  --yp-text-xs:   0.75rem;   /* 12px */
+  --yp-text-sm:   0.875rem;  /* 14px */
+  --yp-text-base: 1rem;      /* 16px */
+  --yp-text-lg:   1.125rem;  /* 18px */
+  --yp-text-xl:   1.25rem;   /* 20px */
+  --yp-text-2xl:  1.5rem;    /* 24px */
+  --yp-text-3xl:  1.875rem;  /* 30px */
+  --yp-text-4xl:  2.25rem;   /* 36px */
+
+  --yp-leading-tight:   1.25;
+  --yp-leading-normal:  1.6;
+  --yp-leading-relaxed: 1.75;
+
+  --yp-fw-normal:   400;
+  --yp-fw-medium:   500;
+  --yp-fw-semibold: 600;
+  --yp-fw-bold:     700;
+  --yp-fw-extrabold: 800;
+  --yp-fw-black:    900;
+
+  /* ────────────────────────────────────────────────────────────
+     SHADOWS — เบาลงมาก (performance-friendly สำหรับมือถือไม่แรง)
+     ใช้ single-layer แทน multi-layer เพื่อลด GPU workload
+     ──────────────────────────────────────────────────────────── */
+  /* v5.9: shadow ปรับให้ card/surface ดูมีมิติและลอยขึ้นมากขึ้น
+   *       เพิ่ม spread เล็กน้อยให้ shadow ดูนุ่มและกว้างขึ้น — breathing feel */
+  --yp-shadow-xs: 0 1px 4px rgba(30, 27, 70, 0.07);
+  --yp-shadow-sm: 0 2px 8px rgba(30, 27, 70, 0.08);
+  --yp-shadow-md: 0 4px 14px rgba(30, 27, 70, 0.10);
+  --yp-shadow-lg: 0 8px 24px rgba(30, 27, 70, 0.13);
+  --yp-shadow-indigo: 0 4px 16px rgba(79, 70, 229, 0.16);
+  --yp-shadow-focus: 0 0 0 3px var(--yp-focus-ring);
+
+  /* Hover lift — เบาลงเพื่อลด transition workload */
+  --yp-hover-lift: 0;          /* ปิด lift โดย default */
+  --yp-hover-scale: 1;         /* ปิด scale โดย default */
+
+  /* ────────────────────────────────────────────────────────────
+     TRANSITIONS — spring easing ตามสไตล์ Fantrove
+     ──────────────────────────────────────────────────────────── */
+  --yp-ease:          cubic-bezier(0.2, 0.9, 0.2, 1);   /* spring */
+  --yp-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --yp-ease-bounce:   cubic-bezier(0.34, 1.56, 0.64, 1); /* bounce overshoot */
+  --yp-ease-decel:    cubic-bezier(0, 0, 0.2, 1);       /* decelerate (enter) */
+  --yp-t-fast:   150ms var(--yp-ease-standard);
+  --yp-t-normal: 260ms var(--yp-ease);
+  --yp-t-slow:   400ms var(--yp-ease);
+
+  /* v7.0: Hero entrance animation durations */
+  --yp-hero-enter:    600ms var(--yp-ease-decel);
+  --yp-hero-stagger:  80ms;   /* delay between staggered children */
+  --yp-card-enter:    380ms var(--yp-ease-decel);
+  --yp-fade-up:       420ms var(--yp-ease-decel);
+
+  /* v7.3: Hero living animation — background flow + dust particles + breathing
+   *       อนุภาคฝุ่น scattered ขนาดต่างกัน ขยับนิดหน่อยเหมือนฝุ่นลอย
+   *       แสงหมอกค่อยๆ จางสลับทำให้เห็นรูปร่าง + เปลี่ยนขนาดด้วย
+   *       พื้นหลังไหลช้าๆ (bg-flow) + ไม่มีเงาวิ่ง */
+  --yp-hero-bg-flow:      28s;   /* slow background gradient flow cycle */
+  --yp-hero-dot-breathe:  24s;   /* slow dot opacity breathing — clusters brighten/dim */
+  --yp-hero-dust-drift:   32s;   /* slow dust micro-drift — ~1-2px like floating dust */
+
+  /* ────────────────────────────────────────────────────────────
+     LAYOUT
+     ──────────────────────────────────────────────────────────── */
+  --yp-container-max:  1110px;
+  --yp-container-md:   860px;
+  --yp-container-sm:   600px;
+  --yp-nav-bottom-h:   96px;
+  --yp-nav-top-h:      52px;
+  --yp-page-pad-x:     1.25rem;   /* v6.1: คืนจาก 1.375rem เป็น 20px */
+  --yp-fab-size:       56px;
+
+  /* Bottom nav ใหม่ lift ขึ้นจากขอบจอ — ต้องชดเชยทั้ง height + margin + safe-area
+     ใช้สำหรับ padding-bottom ของ app-main เพื่อให้เนื้อหาไม่ถูกบัง
+     และสำหรับตำแหน่ง FAB */
+  --yp-bottom-nav-margin: var(--yp-space-3);   /* v6.1: คืนเป็น space-3 (12px) margin รอบ bottom nav */
+  --yp-bottom-nav-total:  calc(var(--yp-nav-bottom-h) + var(--yp-bottom-nav-margin) * 2 + var(--yp-safe-bottom));
+  --yp-page-bottom-pad:   calc(var(--yp-bottom-nav-total) + var(--yp-space-5));  /* กันชนล่างเวลาเลื่อนไปสุด */
+  --yp-fab-bottom:        calc(var(--yp-bottom-nav-total) + var(--yp-space-4));
+
+  /* Compact scale — mobile-first; คลายทีละน้อยบนจอใหญ่
+   * v6.1: คืนค่าเป็น v5.6-5.7 — ไม่เพิ่มทุกที่ ให้จัดเป็นรายจุดแทน */
+  --yp-card-pad:    1.125rem;    /* v6.1: คืนจาก 1.25 (18px) */
+  --yp-card-pad-lg: 1.5rem;      /* v6.1: คืนจาก 1.625 (24px) */
+  --yp-list-pad-y:  0.9375rem;   /* v6.1: คืนจาก 1 (15px) */
+  --yp-list-pad-x:  1.125rem;    /* v6.1: คืนจาก 1.25 (18px) */
+  --yp-section-gap: 1.5rem;      /* v6.1: คืนจาก 1.625 (24px) */
+  --yp-content-gap: 1rem;        /* v6.1: คืนจาก 1.125 (16px) */
+  --yp-stack-gap:   0.6875rem;   /* v6.1: คืนจาก 0.75 (11px) gap ระหว่าง list-item */
+
+  /* ────────────────────────────────────────────────────────────
+     Z-INDEX
+     ──────────────────────────────────────────────────────────── */
+  --yp-z-sticky:  100;
+  --yp-z-fab:     200;
+  --yp-z-nav:     16000;
+  --yp-z-overlay: 17000;
+  --yp-z-modal:   18000;
+  --yp-z-toast:   19000;
+
+  /* Safe area insets (iOS notch / home bar) */
+  --yp-safe-top:    env(safe-area-inset-top, 0px);
+  --yp-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --yp-safe-left:   env(safe-area-inset-left, 0px);
+  --yp-safe-right:  env(safe-area-inset-right, 0px);
+
+  /* ────────────────────────────────────────────────────────────
+     HEADLINE SCALE (responsive with clamp)
+     ──────────────────────────────────────────────────────────── */
+  --yp-h1-size: clamp(1.30rem, 1.15rem + 0.6vw, 1.60rem);
+  --yp-h2-size: clamp(1.12rem, 1.04rem + 0.4vw, 1.32rem);
+  --yp-h3-size: clamp(1.02rem, 0.96rem + 0.3vw, 1.17rem);
+  --yp-lead-size: clamp(0.95rem, 0.92rem + 0.15vw, 1.05rem);
+}
+
+/* ── Desktop relaxation ── */
+@media (min-width: 768px) {
+  :root {
+    --yp-page-pad-x:   1.5rem;    /* v6.1: คืนจาก 1.625 (24px) */
+    --yp-card-pad:     1.25rem;    /* v6.1: คืนจาก 1.375 (20px) */
+    --yp-card-pad-lg:  1.75rem;    /* v6.1: คืนจาก 1.875 (28px) */
+    --yp-list-pad-y:   1.0625rem;  /* v6.1: คืนจาก 1.125 (17px) */
+    --yp-list-pad-x:   1.25rem;    /* v6.1: คืนจาก 1.375 (20px) */
+    --yp-section-gap:  1.75rem;    /* v6.1: คืนจาก 1.875 (28px) */
+    --yp-stack-gap:    0.8125rem;  /* v6.1: คืนจาก 0.875 (13px) */
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --yp-page-pad-x: 1.75rem;   /* v6.1: คืนจาก 2 (28px) */
+    --yp-section-gap: 2rem;      /* v6.1: คืนจาก 2.25 (32px) */
+  }
+}
+
+/* Dark mode placeholder — ปิดไว้ใน demo */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* ใช้ light theme เท่านั้น */
+  }
+}
